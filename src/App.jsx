@@ -1,206 +1,369 @@
 import { useState, useEffect, useCallback } from "react";
 
 // ─── CHAPTER METADATA ──────────────────────────────────────────────────────
-const CHAPTERS = [
-  { id:1,  num:"01", title:"The Heart's Electric System",     sub:"Anatomy & Architecture",      icon:"🏛️", dur:"45 min",  free:true,  color:"#00d4ff" },
-  { id:2,  num:"02", title:"Reading the ECG Strip",           sub:"The Rhythm Blueprint",         icon:"📡", dur:"60 min",  free:true,  color:"#00d4ff" },
-  { id:3,  num:"03", title:"Arrhythmia Origins",              sub:"Mapping the Rebels",           icon:"🗺️", dur:"50 min",  free:false, color:"#a855f7" },
-  { id:4,  num:"04", title:"Sinus Rhythms",                   sub:"Normal & Its Variations",      icon:"🎛️", dur:"55 min",  free:false, color:"#a855f7" },
-  { id:5,  num:"05", title:"Atrial Rhythms",                  sub:"When the Atria Take Charge",   icon:"🌊", dur:"70 min",  free:false, color:"#a855f7" },
-  { id:6,  num:"06", title:"Junctional Rhythms",              sub:"The AV Node Steps Up",         icon:"⚡", dur:"45 min",  free:false, color:"#a855f7" },
-  { id:7,  num:"07", title:"Ventricular Rhythms",             sub:"Wide, Fast & Dangerous",       icon:"💥", dur:"65 min",  free:false, color:"#a855f7" },
-  { id:8,  num:"08", title:"AV Blocks",                       sub:"When the Relay Fails",         icon:"🔗", dur:"60 min",  free:false, color:"#a855f7" },
-  { id:9,  num:"09", title:"Artificial Pacemakers",           sub:"The Backup Generator",         icon:"🔋", dur:"50 min",  free:false, color:"#a855f7" },
-  { id:10, num:"10", title:"AVNRT & AVRT",                    sub:"Reentrant Circuits",           icon:"🔄", dur:"65 min",  free:false, color:"#a855f7" },
-  { id:11, num:"11", title:"Systematic Interpretation",       sub:"Any Strip, Every Time",        icon:"🎚️", dur:"75 min",  free:false, color:"#a855f7" },
-  { id:12, num:"12", title:"Artifacts",                       sub:"Filtering the Noise",          icon:"📻", dur:"40 min",  free:false, color:"#a855f7" },
-  { id:13, num:"13", title:"Clinical Practice",               sub:"Beyond the Strip",             icon:"🏥", dur:"50 min",  free:false, color:"#a855f7" },
-  { id:14, num:"14", title:"Final Practice Exam",             sub:"CRAT Certification Prep",      icon:"🏆", dur:"2–3 hrs", free:false, color:"#f59e0b" },
-];
+// ─── CORRECTED ECGDiagrams — paste this over the existing ECGDiagrams object in App.jsx ───
+// Scale: 1 large box = 50px = 5 small boxes = 0.20 sec
+// Baseline: y=50. R-R intervals match labeled rates.
+//
+// Rates → R-R in px:
+//   75 bpm  → 200px (4 large boxes)
+//   130 bpm → 115px (2.3 large boxes)
+//   150 bpm → 100px (2 large boxes)
+//   180 bpm → 83px  (1.67 large boxes)
+//   50 bpm  → 300px (6 large boxes)
+//   70 bpm  → 214px (4.3 large boxes)
+//   35 bpm  → 429px (8.6 large boxes) ← ventricular escape
 
-// ─── SVG ECG DIAGRAMS ───────────────────────────────────────────────────────
 const ECGDiagrams = {
-  // Normal Sinus Rhythm
+
+  // ── Normal Sinus Rhythm — 75 bpm, R-R = 200px (4 large boxes)
+  // 3 beats. R peaks at x=66, 266, 466
   NSR: () => (
     <svg viewBox="0 0 600 100" style={{width:"100%",height:90}} preserveAspectRatio="none">
       <rect width="600" height="100" fill="#080c14" rx="8"/>
-      {[...Array(12)].map((_,i)=><line key={i} x1={i*50} y1="0" x2={i*50} y2="100" stroke="rgba(0,212,255,0.06)" strokeWidth="1"/>)}
-      {[...Array(5)].map((_,i)=><line key={i} x1="0" y1={i*25} x2="600" y2={i*25} stroke="rgba(0,212,255,0.06)" strokeWidth="1"/>)}
+      {[50,100,150,200,250,300,350,400,450,500,550].map(x=><line key={x} x1={x} y1="0" x2={x} y2="100" stroke="rgba(0,212,255,0.08)" strokeWidth="1"/>)}
+      {[25,75].map(y=><line key={y} x1="0" y1={y} x2="600" y2={y} stroke="rgba(0,212,255,0.05)" strokeWidth="1"/>)}
+      <line x1="0" y1="50" x2="600" y2="50" stroke="rgba(0,212,255,0.1)" strokeWidth="1"/>
+      {/* Beat 1: 0-200, R at 66 | Beat 2: 200-400, R at 266 | Beat 3: 400-600, R at 466 */}
       <polyline fill="none" stroke="#00d4ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-        points="0,50 20,50 28,44 36,50 50,50 58,44 66,50 80,50 88,22 92,78 96,50 106,50 114,44 122,50 150,50 158,44 166,50 180,50 188,22 192,78 196,50 206,50 214,44 222,50 250,50 258,44 266,50 280,50 288,22 292,78 296,50 306,50 314,44 322,50 350,50 358,44 366,50 380,50 388,22 392,78 396,50 406,50 414,44 422,50 450,50 458,44 466,50 480,50 488,22 492,78 496,50 506,50 514,44 522,50 550,50 558,44 566,50 580,50 588,22 592,78 596,50 600,50"/>
-      <text x="10" y="16" fill="rgba(0,212,255,0.5)" fontSize="10" fontFamily="JetBrains Mono,monospace">Normal Sinus Rhythm — 75 bpm</text>
+        points="
+          0,50  18,50  20,47  26,43  32,47  40,50  58,50  60,56  66,12  74,68  80,50  108,50  113,46  125,40  137,46  148,50
+          200,50  218,50  220,47  226,43  232,47  240,50  258,50  260,56  266,12  274,68  280,50  308,50  313,46  325,40  337,46  348,50
+          400,50  418,50  420,47  426,43  432,47  440,50  458,50  460,56  466,12  474,68  480,50  508,50  513,46  525,40  537,46  548,50  600,50"/>
+      <text x="8" y="14" fill="rgba(0,212,255,0.55)" fontSize="9" fontFamily="JetBrains Mono,monospace">Normal Sinus Rhythm — 75 bpm  |  R-R = 4 large boxes (200px)</text>
     </svg>
   ),
-  // Sinus Tachycardia
+
+  // ── Sinus Tachycardia — 130 bpm, R-R = 115px (2.3 large boxes)
+  // 5 beats. R peaks at 38, 153, 268, 383, 498
   STach: () => (
     <svg viewBox="0 0 600 100" style={{width:"100%",height:90}} preserveAspectRatio="none">
       <rect width="600" height="100" fill="#080c14" rx="8"/>
-      {[...Array(12)].map((_,i)=><line key={i} x1={i*50} y1="0" x2={i*50} y2="100" stroke="rgba(0,212,255,0.06)" strokeWidth="1"/>)}
-      {[...Array(5)].map((_,i)=><line key={i} x1="0" y1={i*25} x2="600" y2={i*25} stroke="rgba(0,212,255,0.06)" strokeWidth="1"/>)}
+      {[50,100,150,200,250,300,350,400,450,500,550].map(x=><line key={x} x1={x} y1="0" x2={x} y2="100" stroke="rgba(0,212,255,0.08)" strokeWidth="1"/>)}
+      {[25,75].map(y=><line key={y} x1="0" y1={y} x2="600" y2={y} stroke="rgba(0,212,255,0.05)" strokeWidth="1"/>)}
+      <line x1="0" y1="50" x2="600" y2="50" stroke="rgba(0,212,255,0.1)" strokeWidth="1"/>
+      {/* 5 beats at 115px R-R. At high rates, P may crowd into preceding T wave */}
       <polyline fill="none" stroke="#00d4ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-        points="0,50 10,50 15,44 20,50 30,50 34,22 38,78 42,50 48,50 52,44 57,50 70,50 74,44 79,50 89,50 93,22 97,78 101,50 107,50 111,44 116,50 129,50 133,44 138,50 148,50 152,22 156,78 160,50 166,50 170,44 175,50 188,50 192,44 197,50 207,50 211,22 215,78 219,50 225,50 229,44 234,50 247,50 251,44 256,50 266,50 270,22 274,78 278,50 284,50 288,44 293,50 306,50 310,44 315,50 325,50 329,22 333,78 337,50 343,50 347,44 352,50 365,50 369,44 374,50 384,50 388,22 392,78 396,50 402,50 406,44 411,50 424,50 428,44 433,50 443,50 447,22 451,78 455,50 461,50 465,44 470,50 483,50 487,44 492,50 502,50 506,22 510,78 514,50 520,50 524,44 529,50 542,50 546,44 551,50 561,50 565,22 569,78 573,50 579,50 583,44 588,50 600,50"/>
-      <text x="10" y="16" fill="rgba(0,212,255,0.5)" fontSize="10" fontFamily="JetBrains Mono,monospace">Sinus Tachycardia — 130 bpm</text>
+        points="
+          0,50  10,50  12,47  16,43  20,47  24,50  33,50  35,56  38,12  43,68  47,50  62,50  65,46  72,41  79,46  86,50
+          115,50  125,50  127,47  131,43  135,47  139,50  148,50  150,56  153,12  158,68  162,50  177,50  180,46  187,41  194,46  201,50
+          230,50  240,50  242,47  246,43  250,47  254,50  263,50  265,56  268,12  273,68  277,50  292,50  295,46  302,41  309,46  316,50
+          345,50  355,50  357,47  361,43  365,47  369,50  378,50  380,56  383,12  388,68  392,50  407,50  410,46  417,41  424,46  431,50
+          460,50  470,50  472,47  476,43  480,47  484,50  493,50  495,56  498,12  503,68  507,50  522,50  525,46  532,41  539,46  546,50  600,50"/>
+      <text x="8" y="14" fill="rgba(0,212,255,0.55)" fontSize="9" fontFamily="JetBrains Mono,monospace">Sinus Tachycardia — 130 bpm  |  R-R = 2.3 large boxes (115px)</text>
     </svg>
   ),
-  // Atrial Fibrillation
+
+  // ── Atrial Fibrillation — irregularly irregular, avg ~80 bpm
+  // R peaks at 80, 210, 320, 460, 560  (intervals: 130, 110, 140, 100 — irregular!)
+  // Fibrillatory baseline between QRS complexes (no P waves)
   AFib: () => (
     <svg viewBox="0 0 600 100" style={{width:"100%",height:90}} preserveAspectRatio="none">
       <rect width="600" height="100" fill="#080c14" rx="8"/>
-      {[...Array(12)].map((_,i)=><line key={i} x1={i*50} y1="0" x2={i*50} y2="100" stroke="rgba(0,212,255,0.06)" strokeWidth="1"/>)}
-      {[...Array(5)].map((_,i)=><line key={i} x1="0" y1={i*25} x2="600" y2={i*25} stroke="rgba(0,212,255,0.06)" strokeWidth="1"/>)}
-      <polyline fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-        points="0,50 5,48 10,52 15,47 20,53 25,49 30,51 34,22 38,78 42,50 47,53 52,47 57,51 62,49 67,52 72,48 77,53 82,47 92,22 96,78 100,50 105,52 110,47 115,51 120,49 125,53 130,47 140,22 144,78 148,50 153,48 158,52 163,47 168,53 173,49 183,22 187,78 191,50 196,52 201,48 206,51 211,47 216,53 221,49 226,52 236,22 240,78 244,50 249,48 254,52 259,47 264,53 269,49 274,51 284,22 288,78 292,50 297,53 302,47 307,51 312,49 317,52 327,22 331,78 335,50 340,48 345,52 350,47 355,53 360,49 370,22 374,78 378,50 383,52 388,47 393,51 398,49 403,53 413,22 417,78 421,50 426,48 431,52 436,47 446,22 450,78 454,50 459,53 464,47 469,51 474,49 479,52 489,22 493,78 497,50 502,48 507,52 512,47 517,53 527,22 531,78 535,50 540,52 545,48 550,51 555,47 560,53 565,49 570,52 580,22 584,78 588,50 593,48 598,52 600,50"/>
-      <text x="10" y="16" fill="rgba(245,158,11,0.6)" fontSize="10" fontFamily="JetBrains Mono,monospace">Atrial Fibrillation — Irregularly Irregular</text>
+      {[50,100,150,200,250,300,350,400,450,500,550].map(x=><line key={x} x1={x} y1="0" x2={x} y2="100" stroke="rgba(245,158,11,0.07)" strokeWidth="1"/>)}
+      {[25,75].map(y=><line key={y} x1="0" y1={y} x2="600" y2={y} stroke="rgba(245,158,11,0.05)" strokeWidth="1"/>)}
+      <line x1="0" y1="50" x2="600" y2="50" stroke="rgba(245,158,11,0.1)" strokeWidth="1"/>
+      {/* Fibrillatory baseline + irregularly spaced narrow QRS */}
+      {/* Intervals (px): 80 | 130 | 110 | 140 | 100 → all different = irregularly irregular */}
+      <polyline fill="none" stroke="#f59e0b" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
+        points="
+          0,50  5,48  10,52  15,49  20,51  25,47  30,52  35,49  40,51  45,48  50,52  55,49  60,51  65,48  70,52  75,50
+          76,56  80,12  84,68  88,50
+          93,52  98,48  103,51  108,49  112,52  116,47  120,52  124,49  128,51  133,47  138,52  143,49  148,51  153,48  158,52  163,49  168,51  173,47  178,52  183,49  188,51  193,47  198,52  203,49  207,50
+          208,56  210,12  214,68  218,50
+          222,48  227,52  232,49  237,51  242,47  247,52  252,49  257,51  262,48  267,52  272,49  277,51  282,47  287,52  292,49  297,51  302,48  307,52  312,49  316,50
+          317,56  320,12  324,68  328,50
+          333,52  338,48  343,51  348,49  353,52  358,47  363,52  368,49  373,51  378,47  383,52  388,49  393,51  398,47  403,52  408,49  413,51  418,47  423,52  428,49  433,51  438,47  443,52  448,49  453,51  457,50
+          458,56  460,12  464,68  468,50
+          472,52  477,47  482,51  487,49  492,52  497,47  502,52  507,49  512,51  517,47  522,52  527,49  532,51  537,47  542,52  547,49  551,50  
+          552,56  556,12  560,68  564,50
+          568,52  573,48  578,51  583,49  588,52  593,47  598,51  600,50"/>
+      <text x="8" y="14" fill="rgba(245,158,11,0.65)" fontSize="9" fontFamily="JetBrains Mono,monospace">Atrial Fibrillation — Irregularly irregular  |  R-R intervals all different</text>
     </svg>
   ),
-  // Atrial Flutter
+
+  // ── Atrial Flutter — Atrial 300 bpm, Ventricular 150 bpm (2:1 block)
+  // Flutter waves every 50px (300 bpm). QRS every 100px (150 bpm = 2 large boxes R-R)
   AFlutter: () => (
     <svg viewBox="0 0 600 100" style={{width:"100%",height:90}} preserveAspectRatio="none">
       <rect width="600" height="100" fill="#080c14" rx="8"/>
-      {[...Array(12)].map((_,i)=><line key={i} x1={i*50} y1="0" x2={i*50} y2="100" stroke="rgba(0,212,255,0.06)" strokeWidth="1"/>)}
-      {[...Array(5)].map((_,i)=><line key={i} x1="0" y1={i*25} x2="600" y2={i*25} stroke="rgba(0,212,255,0.06)" strokeWidth="1"/>)}
+      {[50,100,150,200,250,300,350,400,450,500,550].map(x=><line key={x} x1={x} y1="0" x2={x} y2="100" stroke="rgba(168,85,247,0.08)" strokeWidth="1"/>)}
+      {[25,75].map(y=><line key={y} x1="0" y1={y} x2="600" y2={y} stroke="rgba(168,85,247,0.05)" strokeWidth="1"/>)}
+      <line x1="0" y1="50" x2="600" y2="50" stroke="rgba(168,85,247,0.1)" strokeWidth="1"/>
+      {/* Continuous sawtooth at 50px period with QRS every 100px */}
+      {/* Sawtooth: slow upstroke then sharp drop — classic flutter in inferior leads */}
       <polyline fill="none" stroke="#a855f7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-        points="0,50 8,38 16,62 24,38 32,62 36,18 40,82 44,50 52,38 60,62 68,38 76,62 80,18 84,82 88,50 96,38 104,62 112,38 120,62 124,18 128,82 132,50 140,38 148,62 156,38 164,62 168,18 172,82 176,50 184,38 192,62 200,38 208,62 212,18 216,82 220,50 228,38 236,62 244,38 252,62 256,18 260,82 264,50 272,38 280,62 288,38 296,62 300,18 304,82 308,50 316,38 324,62 332,38 340,62 344,18 348,82 352,50 360,38 368,62 376,38 384,62 388,18 392,82 396,50 404,38 412,62 420,38 428,62 432,18 436,82 440,50 448,38 456,62 464,38 472,62 476,18 480,82 484,50 492,38 500,62 508,38 516,62 520,18 524,82 528,50 536,38 544,62 552,38 560,62 564,18 568,82 572,50 580,38 588,62 596,38 600,50"/>
-      <text x="10" y="16" fill="rgba(168,85,247,0.6)" fontSize="10" fontFamily="JetBrains Mono,monospace">Atrial Flutter — Sawtooth Pattern 300 bpm</text>
+        points="
+          0,50  10,42  20,56  30,42  40,56  44,56
+          46,14  50,72  54,52
+          60,42  70,56  80,42  90,56  94,56
+          96,14  100,72  104,52
+          110,42  120,56  130,42  140,56  144,56
+          146,14  150,72  154,52
+          160,42  170,56  180,42  190,56  194,56
+          196,14  200,72  204,52
+          210,42  220,56  230,42  240,56  244,56
+          246,14  250,72  254,52
+          260,42  270,56  280,42  290,56  294,56
+          296,14  300,72  304,52
+          310,42  320,56  330,42  340,56  344,56
+          346,14  350,72  354,52
+          360,42  370,56  380,42  390,56  394,56
+          396,14  400,72  404,52
+          410,42  420,56  430,42  440,56  444,56
+          446,14  450,72  454,52
+          460,42  470,56  480,42  490,56  494,56
+          496,14  500,72  504,52
+          510,42  520,56  530,42  540,56  544,56
+          546,14  550,72  554,52
+          560,42  570,56  580,42  590,56  594,56
+          596,14  600,72"/>
+      <text x="8" y="14" fill="rgba(168,85,247,0.65)" fontSize="9" fontFamily="JetBrains Mono,monospace">Atrial Flutter 2:1 — Atrial 300 bpm (50px) | Ventricular 150 bpm (100px R-R)</text>
     </svg>
   ),
-  // Ventricular Tachycardia
+
+  // ── Ventricular Tachycardia — 180 bpm, R-R = 83px (1.67 large boxes)
+  // 7 beats. Wide bizarre QRS (~35px). R peaks at 14, 97, 180, 263, 346, 429, 512
   VTach: () => (
     <svg viewBox="0 0 600 100" style={{width:"100%",height:90}} preserveAspectRatio="none">
       <rect width="600" height="100" fill="#080c14" rx="8"/>
-      {[...Array(12)].map((_,i)=><line key={i} x1={i*50} y1="0" x2={i*50} y2="100" stroke="rgba(248,113,113,0.06)" strokeWidth="1"/>)}
-      {[...Array(5)].map((_,i)=><line key={i} x1="0" y1={i*25} x2="600" y2={i*25} stroke="rgba(248,113,113,0.06)" strokeWidth="1"/>)}
+      {[50,100,150,200,250,300,350,400,450,500,550].map(x=><line key={x} x1={x} y1="0" x2={x} y2="100" stroke="rgba(248,113,113,0.08)" strokeWidth="1"/>)}
+      {[25,75].map(y=><line key={y} x1="0" y1={y} x2="600" y2={y} stroke="rgba(248,113,113,0.05)" strokeWidth="1"/>)}
+      <line x1="0" y1="50" x2="600" y2="50" stroke="rgba(248,113,113,0.1)" strokeWidth="1"/>
+      {/* Wide bizarre QRS, 83px R-R = 180 bpm. No visible P waves. */}
       <polyline fill="none" stroke="#f87171" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-        points="0,50 5,50 8,44 12,15 16,85 20,56 24,50 29,50 32,44 36,15 40,85 44,56 48,50 53,50 56,44 60,15 64,85 68,56 72,50 77,50 80,44 84,15 88,85 92,56 96,50 101,50 104,44 108,15 112,85 116,56 120,50 125,50 128,44 132,15 136,85 140,56 144,50 149,50 152,44 156,15 160,85 164,56 168,50 173,50 176,44 180,15 184,85 188,56 192,50 197,50 200,44 204,15 208,85 212,56 216,50 221,50 224,44 228,15 232,85 236,56 240,50 245,50 248,44 252,15 256,85 260,56 264,50 269,50 272,44 276,15 280,85 284,56 288,50 293,50 296,44 300,15 304,85 308,56 312,50 317,50 320,44 324,15 328,85 332,56 336,50 341,50 344,44 348,15 352,85 356,56 360,50 365,50 368,44 372,15 376,85 380,56 384,50 389,50 392,44 396,15 400,85 404,56 408,50 413,50 416,44 420,15 424,85 428,56 432,50 437,50 440,44 444,15 448,85 452,56 456,50 461,50 464,44 468,15 472,85 476,56 480,50 485,50 488,44 492,15 496,85 500,56 504,50 509,50 512,44 516,15 520,85 524,56 528,50 533,50 536,44 540,15 544,85 548,56 552,50 557,50 560,44 564,15 568,85 572,56 576,50 581,50 584,44 588,15 592,85 596,56 600,50"/>
-      <text x="10" y="16" fill="rgba(248,113,113,0.6)" fontSize="10" fontFamily="JetBrains Mono,monospace">Ventricular Tachycardia — Wide QRS 180 bpm</text>
+        points="
+          0,50  4,50  7,46  10,36  12,18  14,10  16,20  18,38  22,68  28,58  34,52  40,50
+          83,50  87,50  90,46  93,36  95,18  97,10  99,20  101,38  105,68  111,58  117,52  123,50
+          166,50  170,50  173,46  176,36  178,18  180,10  182,20  184,38  188,68  194,58  200,52  206,50
+          249,50  253,50  256,46  259,36  261,18  263,10  265,20  267,38  271,68  277,58  283,52  289,50
+          332,50  336,50  339,46  342,36  344,18  346,10  348,20  350,38  354,68  360,58  366,52  372,50
+          415,50  419,50  422,46  425,36  427,18  429,10  431,20  433,38  437,68  443,58  449,52  455,50
+          498,50  502,50  505,46  508,36  510,18  512,10  514,20  516,38  520,68  526,58  532,52  540,50  600,50"/>
+      <text x="8" y="14" fill="rgba(248,113,113,0.65)" fontSize="9" fontFamily="JetBrains Mono,monospace">Ventricular Tachycardia — 180 bpm  |  R-R = 1.67 large boxes (83px)  |  Wide QRS</text>
     </svg>
   ),
-  // PVC
+
+  // ── PVC Trigeminy — NSR at ~94 bpm (R-R=160px), PVC every 3rd beat
+  // Pattern: NSR→NSR→PVC→compensatory pause (2×R-R=320px)→NSR
+  // R1 at 53, R2 at 213, PVC at ~275, compensatory pause, R3 at 595
   PVC: () => (
     <svg viewBox="0 0 600 100" style={{width:"100%",height:90}} preserveAspectRatio="none">
       <rect width="600" height="100" fill="#080c14" rx="8"/>
-      {[...Array(12)].map((_,i)=><line key={i} x1={i*50} y1="0" x2={i*50} y2="100" stroke="rgba(0,212,255,0.06)" strokeWidth="1"/>)}
-      {[...Array(5)].map((_,i)=><line key={i} x1="0" y1={i*25} x2="600" y2={i*25} stroke="rgba(0,212,255,0.06)" strokeWidth="1"/>)}
+      {[50,100,150,200,250,300,350,400,450,500,550].map(x=><line key={x} x1={x} y1="0" x2={x} y2="100" stroke="rgba(0,212,255,0.08)" strokeWidth="1"/>)}
+      {[25,75].map(y=><line key={y} x1="0" y1={y} x2="600" y2={y} stroke="rgba(0,212,255,0.05)" strokeWidth="1"/>)}
+      <line x1="0" y1="50" x2="600" y2="50" stroke="rgba(0,212,255,0.1)" strokeWidth="1"/>
+      {/* NSR beat 1 (x=0, R-R=160px): R at 53 */}
       <polyline fill="none" stroke="#00d4ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-        points="0,50 20,50 28,44 36,50 50,50 58,22 62,78 66,50 76,50 84,44 92,50 110,50"/>
+        points="0,50  14,50  16,47  21,43  26,47  32,50  46,50  48,56  53,12  59,68  65,50  86,50  89,46  97,41  105,46  112,50  160,50"/>
+      {/* NSR beat 2 (x=160, R-R=160px): R at 213 — truncated as PVC interrupts */}
+      <polyline fill="none" stroke="#00d4ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+        points="160,50  174,50  176,47  181,43  186,47  192,50  206,50  208,56  213,12  219,68  225,50  246,50  250,46  258,41  262,50"/>
+      {/* PVC (EARLY, WIDE — fires at 262, 100px after beat 2 R = 63% of cycle = early) */}
       <polyline fill="none" stroke="#f87171" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-        points="110,50 114,44 118,10 124,90 130,56 138,50"/>
+        points="262,50  265,47  268,36  272,14  278,78  284,65  290,54  298,50"/>
+      {/* Long compensatory pause (298→515, = 2×R-R after PVC R) then NSR beat 3 */}
       <polyline fill="none" stroke="#00d4ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-        points="138,50 160,50 168,44 176,50 190,50 198,22 202,78 206,50 216,50 224,44 232,50 250,50 258,22 262,78 266,50 276,50 284,44 292,50"/>
-      <polyline fill="none" stroke="#f87171" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-        points="292,50 296,44 300,10 306,90 312,56 320,50"/>
-      <polyline fill="none" stroke="#00d4ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-        points="320,50 340,50 348,44 356,50 370,50 378,22 382,78 386,50 396,50 404,44 412,50 430,50 438,22 442,78 446,50 456,50 464,44 472,50 490,50"/>
-      <polyline fill="none" stroke="#f87171" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-        points="490,50 494,44 498,10 504,90 510,56 518,50"/>
-      <polyline fill="none" stroke="#00d4ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-        points="518,50 540,50 548,44 556,50 570,50 578,22 582,78 586,50 596,50 600,50"/>
-      <text x="10" y="16" fill="rgba(248,113,113,0.6)" fontSize="10" fontFamily="JetBrains Mono,monospace">PVC Trigeminy — Wide Ectopic Beat Every 3rd</text>
+        points="298,50  515,50  517,47  522,43  527,47  533,50  547,50  549,56  554,12  560,68  566,50  587,50  590,46  598,41  600,40"/>
+      <text x="8" y="14" fill="rgba(248,113,113,0.65)" fontSize="9" fontFamily="JetBrains Mono,monospace">PVC Trigeminy — Wide early beat (red) every 3rd  |  Compensatory pause follows</text>
     </svg>
   ),
-  // First Degree AV Block
+
+  // ── First-Degree AV Block — 75 bpm, R-R=200px, PR = 0.28 sec (7 small boxes = 70px)
+  // Normal PR = 40px. Here PR = 70px — prolonged but every P conducts.
+  // R peaks at 96, 296, 496
   FirstDegree: () => (
     <svg viewBox="0 0 600 100" style={{width:"100%",height:90}} preserveAspectRatio="none">
       <rect width="600" height="100" fill="#080c14" rx="8"/>
-      {[...Array(12)].map((_,i)=><line key={i} x1={i*50} y1="0" x2={i*50} y2="100" stroke="rgba(0,212,255,0.06)" strokeWidth="1"/>)}
-      {[...Array(5)].map((_,i)=><line key={i} x1="0" y1={i*25} x2="600" y2={i*25} stroke="rgba(0,212,255,0.06)" strokeWidth="1"/>)}
+      {[50,100,150,200,250,300,350,400,450,500,550].map(x=><line key={x} x1={x} y1="0" x2={x} y2="100" stroke="rgba(0,212,255,0.08)" strokeWidth="1"/>)}
+      {[25,75].map(y=><line key={y} x1="0" y1={y} x2="600" y2={y} stroke="rgba(0,212,255,0.05)" strokeWidth="1"/>)}
+      <line x1="0" y1="50" x2="600" y2="50" stroke="rgba(0,212,255,0.1)" strokeWidth="1"/>
+      {/* 75 bpm, R-R=200px, but PR=70px (prolonged — normal is 40px) */}
+      {/* P starts at x+18, QRS starts at x+88 → PR = 70px = 7 small boxes = 0.28 sec */}
       <polyline fill="none" stroke="#00d4ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-        points="0,50 15,50 22,44 30,50 55,50 63,22 67,78 71,50 81,50 89,44 97,50 122,50 130,44 138,50 163,50 171,22 175,78 179,50 189,50 197,44 205,50 230,50 238,44 246,50 271,50 279,22 283,78 287,50 297,50 305,44 313,50 338,50 346,44 354,50 379,50 387,22 391,78 395,50 405,50 413,44 421,50 446,50 454,44 462,50 487,50 495,22 499,78 503,50 513,50 521,44 529,50 554,50 562,44 570,50 595,50 600,50"/>
-      <line x1="22" y1="44" x2="55" y2="44" stroke="rgba(245,158,11,0.3)" strokeWidth="1" strokeDasharray="3,2"/>
-      <line x1="130" y1="44" x2="163" y2="44" stroke="rgba(245,158,11,0.3)" strokeWidth="1" strokeDasharray="3,2"/>
-      <line x1="238" y1="44" x2="271" y2="44" stroke="rgba(245,158,11,0.3)" strokeWidth="1" strokeDasharray="3,2"/>
-      <text x="10" y="16" fill="rgba(245,158,11,0.6)" fontSize="10" fontFamily="JetBrains Mono,monospace">1st Degree AV Block — Prolonged PR &gt;0.20 sec</text>
+        points="
+          0,50  16,50  18,47  24,43  30,47  38,50  86,50  88,56  96,12  104,68  110,50  132,50  135,46  145,40  155,46  162,50
+          200,50  216,50  218,47  224,43  230,47  238,50  286,50  288,56  296,12  304,68  310,50  332,50  335,46  345,40  355,46  362,50
+          400,50  416,50  418,47  424,43  430,47  438,50  486,50  488,56  496,12  504,68  510,50  532,50  535,46  545,40  555,46  562,50  600,50"/>
+      {/* Dashed lines highlighting the prolonged PR intervals */}
+      <line x1="18" y1="43" x2="88" y2="43" stroke="rgba(245,158,11,0.35)" strokeWidth="1" strokeDasharray="4,3"/>
+      <line x1="218" y1="43" x2="288" y2="43" stroke="rgba(245,158,11,0.35)" strokeWidth="1" strokeDasharray="4,3"/>
+      <line x1="418" y1="43" x2="488" y2="43" stroke="rgba(245,158,11,0.35)" strokeWidth="1" strokeDasharray="4,3"/>
+      <text x="8" y="14" fill="rgba(245,158,11,0.65)" fontSize="9" fontFamily="JetBrains Mono,monospace">1st Degree AV Block — 75 bpm  |  PR = 0.28 sec (7 small boxes)  |  All P waves conduct</text>
     </svg>
   ),
-  // Wenckebach / Mobitz I
+
+  // ── Mobitz I (Wenckebach) — progressive PR lengthening then dropped beat
+  // Atrial rate 75 bpm, P-P = 200px. 3:2 pattern: 3 P waves per 2 QRS.
+  // PR cycle: Beat1=40px → Beat2=70px → Beat3 blocked
+  // P waves at: 10, 210, 410
+  // QRS at: 66 (PR=56), 292 (PR=82) — no QRS after P3 at 410
   Wenckebach: () => (
     <svg viewBox="0 0 600 100" style={{width:"100%",height:90}} preserveAspectRatio="none">
       <rect width="600" height="100" fill="#080c14" rx="8"/>
-      {[...Array(12)].map((_,i)=><line key={i} x1={i*50} y1="0" x2={i*50} y2="100" stroke="rgba(0,212,255,0.06)" strokeWidth="1"/>)}
-      {[...Array(5)].map((_,i)=><line key={i} x1="0" y1={i*25} x2="600" y2={i*25} stroke="rgba(0,212,255,0.06)" strokeWidth="1"/>)}
+      {[50,100,150,200,250,300,350,400,450,500,550].map(x=><line key={x} x1={x} y1="0" x2={x} y2="100" stroke="rgba(0,212,255,0.08)" strokeWidth="1"/>)}
+      {[25,75].map(y=><line key={y} x1="0" y1={y} x2="600" y2={y} stroke="rgba(0,212,255,0.05)" strokeWidth="1"/>)}
+      <line x1="0" y1="50" x2="600" y2="50" stroke="rgba(0,212,255,0.1)" strokeWidth="1"/>
+
+      {/* Beat 1: P at 10-30, short PR (40px), QRS R at 70, T ends ~170 */}
       <polyline fill="none" stroke="#00d4ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-        points="0,50 15,50 22,44 37,50 47,50 55,22 59,78 63,50 73,50 80,44 100,50 110,50 118,22 122,78 126,50 136,50 143,44 168,50"/>
-      <polyline fill="none" stroke="#f59e0b" strokeWidth="1.5" strokeDasharray="4,3" strokeLinecap="round"
-        points="168,50 175,44 188,50"/>
+        points="0,50  8,50  10,47  16,43  22,47  30,50  68,50  70,56  76,12  84,68  90,50  112,50  115,46  125,40  135,46  142,50  200,50"/>
+
+      {/* Beat 2: P at 210-230, longer PR (80px), QRS R at 316, T ends ~400 */}
       <polyline fill="none" stroke="#00d4ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-        points="200,50 215,50 222,44 237,50 247,50 255,22 259,78 263,50 273,50 280,44 300,50 310,50 318,22 322,78 326,50 336,50 343,44 368,50"/>
-      <polyline fill="none" stroke="#f59e0b" strokeWidth="1.5" strokeDasharray="4,3" strokeLinecap="round"
-        points="368,50 375,44 388,50"/>
+        points="200,50  208,50  210,47  216,43  222,47  230,50  314,50  316,56  322,12  330,68  336,50  358,50  361,46  371,40  381,46  388,50  410,50"/>
+
+      {/* Beat 3: P at 410-430, NO QRS follows (blocked) — just P wave and long flat line */}
       <polyline fill="none" stroke="#00d4ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-        points="400,50 415,50 422,44 437,50 447,50 455,22 459,78 463,50 473,50 480,44 500,50 510,50 518,22 522,78 526,50 536,50 543,44 568,50"/>
-      <polyline fill="none" stroke="#f59e0b" strokeWidth="1.5" strokeDasharray="4,3" strokeLinecap="round"
-        points="568,50 575,44 588,50"/>
-      <text x="10" y="16" fill="rgba(245,158,11,0.6)" fontSize="10" fontFamily="JetBrains Mono,monospace">Mobitz I (Wenckebach) — PR Lengthens then Drops</text>
+        points="410,50  418,47  424,43  430,47  438,50  600,50"/>
+
+      {/* Highlight blocked P wave */}
+      <circle cx="424" cy="43" r="6" fill="none" stroke="rgba(248,113,113,0.5)" strokeWidth="1.5" strokeDasharray="3,2"/>
+
+      {/* PR interval markers */}
+      <line x1="10" y1="43" x2="68" y2="43" stroke="rgba(0,212,255,0.25)" strokeWidth="1" strokeDasharray="3,2"/>
+      <line x1="210" y1="43" x2="314" y2="43" stroke="rgba(245,158,11,0.35)" strokeWidth="1" strokeDasharray="3,2"/>
+
+      <text x="8" y="14" fill="rgba(245,158,11,0.65)" fontSize="9" fontFamily="JetBrains Mono,monospace">Mobitz I (Wenckebach) — PR lengthens each beat  |  3rd P blocked (circled)  |  Cycle resets</text>
     </svg>
   ),
-  // Complete Heart Block
+
+  // ── Third-Degree (Complete) AV Block — P waves and QRS fully dissociated
+  // P waves (atrial rate 75 bpm, P-P=200px): circles at y=35, at x=30, 230, 430
+  // QRS (ventricular escape 35 bpm, R-R=429px): R peaks at x=110, 539
+  // No P wave ever captures a QRS → complete AV dissociation
   CompleteBlock: () => (
     <svg viewBox="0 0 600 100" style={{width:"100%",height:90}} preserveAspectRatio="none">
       <rect width="600" height="100" fill="#080c14" rx="8"/>
-      {[...Array(12)].map((_,i)=><line key={i} x1={i*50} y1="0" x2={i*50} y2="100" stroke="rgba(248,113,113,0.06)" strokeWidth="1"/>)}
-      {[...Array(5)].map((_,i)=><line key={i} x1="0" y1={i*25} x2="600" y2={i*25} stroke="rgba(248,113,113,0.06)" strokeWidth="1"/>)}
-      {[0,60,120,180,240,300,360,420,480,540].map(x=>(
-        <g key={x}>
-          <circle cx={x+10} cy={35} r="4" fill="none" stroke="rgba(0,212,255,0.5)" strokeWidth="1.5"/>
-        </g>
-      ))}
+      {[50,100,150,200,250,300,350,400,450,500,550].map(x=><line key={x} x1={x} y1="0" x2={x} y2="100" stroke="rgba(248,113,113,0.07)" strokeWidth="1"/>)}
+      {[25,75].map(y=><line key={y} x1="0" y1={y} x2="600" y2={y} stroke="rgba(248,113,113,0.05)" strokeWidth="1"/>)}
+      <line x1="0" y1="50" x2="600" y2="50" stroke="rgba(248,113,113,0.1)" strokeWidth="1"/>
+
+      {/* P waves marching at 75 bpm (P-P = 200px): x=30, 230, 430 */}
+      {/* Rendered as small bumps above the baseline */}
+      <polyline fill="none" stroke="rgba(0,212,255,0.7)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+        points="0,50  26,50  28,47  33,42  38,47  44,50
+                226,50  228,47  233,42  238,47  244,50
+                426,50  428,47  433,42  438,47  444,50  600,50"/>
+
+      {/* Wide escape QRS (ventricular, 35 bpm, R-R=429px): R at 110, 539 */}
+      {/* Wide bizarre QRS — ventricular escape is always wide */}
       <polyline fill="none" stroke="#f87171" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-        points="0,65 30,65 36,58 40,30 44,95 50,65 80,65 116,58 120,30 124,95 130,65 160,65 196,58 200,30 204,95 210,65 240,65 280,65 286,58 290,30 294,95 300,65 330,65 370,65 376,58 380,30 384,95 390,65 420,65 460,65 466,58 470,30 474,95 480,65 510,65 550,65 556,58 560,30 564,95 570,65 600,65"/>
-      <text x="10" y="16" fill="rgba(248,113,113,0.6)" fontSize="10" fontFamily="JetBrains Mono,monospace">3rd Degree AV Block — P waves & QRS Dissociated</text>
+        points="44,50  100,50  102,47  106,26  110,10  114,22  118,40  124,72  132,60  140,52  150,50
+                290,50  530,50  532,47  536,26  540,10  544,22  548,40  554,72  562,60  570,52  580,50  600,50"/>
+
+      {/* P wave labels */}
+      <text x="27" y="38" fill="rgba(0,212,255,0.5)" fontSize="8" fontFamily="JetBrains Mono,monospace">P</text>
+      <text x="227" y="38" fill="rgba(0,212,255,0.5)" fontSize="8" fontFamily="JetBrains Mono,monospace">P</text>
+      <text x="427" y="38" fill="rgba(0,212,255,0.5)" fontSize="8" fontFamily="JetBrains Mono,monospace">P</text>
+
+      <text x="8" y="14" fill="rgba(248,113,113,0.65)" fontSize="9" fontFamily="JetBrains Mono,monospace">3rd Degree AV Block — P waves (blue) 75 bpm independent of escape QRS (red) 35 bpm</text>
     </svg>
   ),
-  // Pacemaker
+
+  // ── Ventricular Paced Rhythm — 70 bpm, R-R = 214px (4.3 large boxes)
+  // Pacing spikes (vertical lines) at x=10, 224, 438
+  // Wide QRS follows each spike (paced ventricular depolarization is always wide)
   Paced: () => (
     <svg viewBox="0 0 600 100" style={{width:"100%",height:90}} preserveAspectRatio="none">
       <rect width="600" height="100" fill="#080c14" rx="8"/>
-      {[...Array(12)].map((_,i)=><line key={i} x1={i*50} y1="0" x2={i*50} y2="100" stroke="rgba(0,212,255,0.06)" strokeWidth="1"/>)}
-      {[...Array(5)].map((_,i)=><line key={i} x1="0" y1={i*25} x2="600" y2={i*25} stroke="rgba(0,212,255,0.06)" strokeWidth="1"/>)}
-      {[20,120,220,320,420,520].map(x=>(
-        <line key={x} x1={x} y1="20" x2={x} y2="80" stroke="#f59e0b" strokeWidth="2.5"/>
+      {[50,100,150,200,250,300,350,400,450,500,550].map(x=><line key={x} x1={x} y1="0" x2={x} y2="100" stroke="rgba(0,212,255,0.08)" strokeWidth="1"/>)}
+      {[25,75].map(y=><line key={y} x1="0" y1={y} x2="600" y2={y} stroke="rgba(0,212,255,0.05)" strokeWidth="1"/>)}
+      <line x1="0" y1="50" x2="600" y2="50" stroke="rgba(0,212,255,0.1)" strokeWidth="1"/>
+
+      {/* Pacing spikes at x=10, 224, 438 (R-R=214px = 70 bpm) */}
+      {[10, 224, 438].map(x => (
+        <line key={x} x1={x} y1="15" x2={x} y2="85" stroke="#f59e0b" strokeWidth="2.5"/>
       ))}
-      <polyline fill="none" stroke="#00d4ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-        points="0,50 20,50 22,50 26,15 34,85 40,50 60,55 80,50 100,50 120,50 122,50 126,15 134,85 140,50 160,55 180,50 200,50 220,50 222,50 226,15 234,85 240,50 260,55 280,50 300,50 320,50 322,50 326,15 334,85 340,50 360,55 380,50 400,50 420,50 422,50 426,15 434,85 440,50 460,55 480,50 500,50 520,50 522,50 526,15 534,85 540,50 560,55 580,50 600,50"/>
-      <text x="10" y="16" fill="rgba(245,158,11,0.6)" fontSize="10" fontFamily="JetBrains Mono,monospace">V-Paced Rhythm — Spike → Wide QRS</text>
+
+      {/* Wide QRS complex after each spike (V-paced = wide because bypasses His-Purkinje) */}
+      {[10, 224, 438].map(x => (
+        <polyline key={x} fill="none" stroke="#00d4ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+          points={`0,50 ${x},50 ${x+2},50 ${x+5},46 ${x+8},36 ${x+12},15 ${x+18},70 ${x+24},60 ${x+30},53 ${x+38},50 ${x+100},50 ${x+106},46 ${x+116},41 ${x+126},46 ${x+134},50 ${x+214},50`}/>
+      ))}
+
+      <text x="8" y="14" fill="rgba(245,158,11,0.65)" fontSize="9" fontFamily="JetBrains Mono,monospace">V-Paced Rhythm — 70 bpm  |  R-R = 4.3 large boxes (214px)  |  Spike → Wide QRS</text>
     </svg>
   ),
-  // Junctional
+
+  // ── Junctional Rhythm — 50 bpm, R-R = 300px (6 large boxes)
+  // Only 2 beats fit in 600px. No P before QRS. Inverted P AFTER QRS (retrograde).
   Junctional: () => (
     <svg viewBox="0 0 600 100" style={{width:"100%",height:90}} preserveAspectRatio="none">
       <rect width="600" height="100" fill="#080c14" rx="8"/>
-      {[...Array(12)].map((_,i)=><line key={i} x1={i*50} y1="0" x2={i*50} y2="100" stroke="rgba(0,212,255,0.06)" strokeWidth="1"/>)}
-      {[...Array(5)].map((_,i)=><line key={i} x1="0" y1={i*25} x2="600" y2={i*25} stroke="rgba(0,212,255,0.06)" strokeWidth="1"/>)}
+      {[50,100,150,200,250,300,350,400,450,500,550].map(x=><line key={x} x1={x} y1="0" x2={x} y2="100" stroke="rgba(168,85,247,0.08)" strokeWidth="1"/>)}
+      {[25,75].map(y=><line key={y} x1="0" y1={y} x2="600" y2={y} stroke="rgba(168,85,247,0.05)" strokeWidth="1"/>)}
+      <line x1="0" y1="50" x2="600" y2="50" stroke="rgba(168,85,247,0.1)" strokeWidth="1"/>
+
+      {/* Beat 1: R at 60, inverted P follows QRS at ~100 | Beat 2: R at 360, inverted P at ~400 */}
+      {/* No P BEFORE QRS — no upright P visible */}
+      {/* Inverted (retrograde) P appears AFTER QRS, dipping below baseline */}
       <polyline fill="none" stroke="#a855f7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-        points="0,50 30,50 34,56 38,50 42,22 46,78 50,50 80,50 110,50 114,56 118,50 122,22 126,78 130,50 160,50 190,50 194,56 198,50 202,22 206,78 210,50 240,50 270,50 274,56 278,50 282,22 286,78 290,50 320,50 350,50 354,56 358,50 362,22 366,78 370,50 400,50 430,50 434,56 438,50 442,22 446,78 450,50 480,50 510,50 514,56 518,50 522,22 526,78 530,50 560,50 590,50 594,56 598,50 600,50"/>
-      <text x="10" y="16" fill="rgba(168,85,247,0.6)" fontSize="10" fontFamily="JetBrains Mono,monospace">Junctional Rhythm — Inverted P after QRS, 50 bpm</text>
+        points="
+          0,50  54,50  56,56  60,12  66,68  72,50
+          88,50  92,54  100,57  108,54  116,50
+          300,50  354,50  356,56  360,12  366,68  372,50
+          388,50  392,54  400,57  408,54  416,50  600,50"/>
+
+      {/* Labels: inverted P indicator */}
+      <text x="90" y="68" fill="rgba(168,85,247,0.5)" fontSize="8" fontFamily="JetBrains Mono,monospace">P⁻</text>
+      <text x="390" y="68" fill="rgba(168,85,247,0.5)" fontSize="8" fontFamily="JetBrains Mono,monospace">P⁻</text>
+
+      <text x="8" y="14" fill="rgba(168,85,247,0.65)" fontSize="9" fontFamily="JetBrains Mono,monospace">Junctional Rhythm — 50 bpm  |  R-R = 6 large boxes (300px)  |  Inverted P after QRS</text>
     </svg>
   ),
-  // Artifact
+
+  // ── Motion Artifact — Normal NSR (75 bpm) → sudden artifact → NSR resumes
+  // Sudden onset and offset is the key artifact clue
   Artifact: () => (
     <svg viewBox="0 0 600 100" style={{width:"100%",height:90}} preserveAspectRatio="none">
       <rect width="600" height="100" fill="#080c14" rx="8"/>
-      {[...Array(12)].map((_,i)=><line key={i} x1={i*50} y1="0" x2={i*50} y2="100" stroke="rgba(0,212,255,0.06)" strokeWidth="1"/>)}
-      {[...Array(5)].map((_,i)=><line key={i} x1="0" y1={i*25} x2="600" y2={i*25} stroke="rgba(0,212,255,0.06)" strokeWidth="1"/>)}
+      {[50,100,150,200,250,300,350,400,450,500,550].map(x=><line key={x} x1={x} y1="0" x2={x} y2="100" stroke="rgba(0,212,255,0.08)" strokeWidth="1"/>)}
+      {[25,75].map(y=><line key={y} x1="0" y1={y} x2="600" y2={y} stroke="rgba(0,212,255,0.05)" strokeWidth="1"/>)}
+      <line x1="0" y1="50" x2="600" y2="50" stroke="rgba(0,212,255,0.1)" strokeWidth="1"/>
+
+      {/* Pre-artifact NSR (75 bpm): 1 full beat, R at 66 */}
       <polyline fill="none" stroke="#00d4ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-        points="0,50 20,50 28,44 36,50 50,50 58,22 62,78 66,50 76,50 84,44 92,50 110,50"/>
+        points="0,50  18,50  20,47  26,43  32,47  40,50  58,50  60,56  66,12  74,68  80,50  108,50  113,46  125,40  137,46  148,50  160,50"/>
+
+      {/* SUDDEN onset artifact (160–390) — irregular chaotic waving mimicking VF */}
       <polyline fill="none" stroke="#f87171" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
-        points="110,50 115,30 120,70 125,20 130,80 135,35 140,65 145,25 150,75 155,40 160,60 165,20 170,80 175,35 180,65 185,30 190,70 195,45 200,55 205,25 210,75 215,40 220,60 225,30 230,70 235,45 240,55 245,20 250,80 255,35 260,65 265,25 270,75 275,40 280,60 285,30 290,70 295,45 300,55 305,20 310,80 315,35 320,65 325,30 330,70 335,45 340,55 345,25 350,75 355,40 360,60 365,30 370,70 375,35 380,65 385,40 390,60 395,50"/>
+        points="160,50  165,24  170,76  175,18  180,82  185,30  190,70  195,20  200,80  205,35  210,65  215,22  220,78  225,40  230,60  235,18  240,82  245,35  250,68  255,22  260,78  265,32  270,68  275,20  280,80  285,38  290,62  295,24  300,76  305,40  310,60  315,22  320,78  325,36  330,64  335,20  340,80  345,42  350,58  355,26  360,74  365,38  370,62  375,20  380,80  385,42  390,50"/>
+
+      {/* SUDDEN return to NSR (390 onward): R at 466, 466+200=666 (one full beat) */}
       <polyline fill="none" stroke="#00d4ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-        points="395,50 410,50 418,44 426,50 440,50 448,22 452,78 456,50 466,50 474,44 482,50 500,50 508,22 512,78 516,50 526,50 534,44 542,50 560,50 568,22 572,78 576,50 586,50 594,44 600,50"/>
-      <text x="10" y="16" fill="rgba(248,113,113,0.6)" fontSize="10" fontFamily="JetBrains Mono,monospace">Motion Artifact — Sudden Onset, Normal Before & After</text>
+        points="390,50  408,50  410,47  416,43  422,47  430,50  448,50  450,56  456,12  464,68  470,50  498,50  503,46  515,40  527,46  538,50  600,50"/>
+
+      <text x="8" y="14" fill="rgba(248,113,113,0.65)" fontSize="9" fontFamily="JetBrains Mono,monospace">Motion Artifact — Sudden onset (red)  |  Normal NSR before and after  |  Check the patient first</text>
     </svg>
   ),
-  // AVNRT
+
+  // ── AVNRT — 180 bpm, R-R = 83px, narrow QRS, P waves buried in QRS
+  // 7 beats. R peaks at 46, 129, 212, 295, 378, 461, 544
   AVNRT: () => (
     <svg viewBox="0 0 600 100" style={{width:"100%",height:90}} preserveAspectRatio="none">
       <rect width="600" height="100" fill="#080c14" rx="8"/>
-      {[...Array(12)].map((_,i)=><line key={i} x1={i*50} y1="0" x2={i*50} y2="100" stroke="rgba(0,212,255,0.06)" strokeWidth="1"/>)}
-      {[...Array(5)].map((_,i)=><line key={i} x1="0" y1={i*25} x2="600" y2={i*25} stroke="rgba(0,212,255,0.06)" strokeWidth="1"/>)}
+      {[50,100,150,200,250,300,350,400,450,500,550].map(x=><line key={x} x1={x} y1="0" x2={x} y2="100" stroke="rgba(0,212,255,0.08)" strokeWidth="1"/>)}
+      {[25,75].map(y=><line key={y} x1="0" y1={y} x2="600" y2={y} stroke="rgba(0,212,255,0.05)" strokeWidth="1"/>)}
+      <line x1="0" y1="50" x2="600" y2="50" stroke="rgba(0,212,255,0.1)" strokeWidth="1"/>
+      {/* Narrow QRS tachycardia at 180 bpm (R-R=83px). No visible P waves. */}
+      {/* Very short flat baseline between narrow QRS complexes */}
       <polyline fill="none" stroke="#00d4ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-        points="0,50 8,50 12,18 16,82 20,52 28,50 36,50 40,18 44,82 48,52 56,50 64,50 68,18 72,82 76,52 84,50 92,50 96,18 100,82 104,52 112,50 120,50 124,18 128,82 132,52 140,50 148,50 152,18 156,82 160,52 168,50 176,50 180,18 184,82 188,52 196,50 204,50 208,18 212,82 216,52 224,50 232,50 236,18 240,82 244,52 252,50 260,50 264,18 268,82 272,52 280,50 288,50 292,18 296,82 300,52 308,50 316,50 320,18 324,82 328,52 336,50 344,50 348,18 352,82 356,52 364,50 372,50 376,18 380,82 384,52 392,50 400,50 404,18 408,82 412,52 420,50 428,50 432,18 436,82 440,52 448,50 456,50 460,18 464,82 468,52 476,50 484,50 488,18 492,82 496,52 504,50 512,50 516,18 520,82 524,52 532,50 540,50 544,18 548,82 552,52 560,50 568,50 572,18 576,82 580,52 588,50 596,50 600,50"/>
-      <text x="10" y="16" fill="rgba(0,212,255,0.5)" fontSize="10" fontFamily="JetBrains Mono,monospace">AVNRT — Narrow QRS Tachycardia, P buried in QRS</text>
+        points="
+          0,50  40,50  42,56  46,10  50,72  54,50
+          83,50  125,50  127,56  129,10  133,72  137,50
+          166,50  208,50  210,56  212,10  216,72  220,50
+          249,50  291,50  293,56  295,10  299,72  303,50
+          332,50  374,50  376,56  378,10  382,72  386,50
+          415,50  457,50  459,56  461,10  465,72  469,50
+          498,50  540,50  542,56  544,10  548,72  552,50
+          583,50  600,50"/>
+      <text x="8" y="14" fill="rgba(0,212,255,0.55)" fontSize="9" fontFamily="JetBrains Mono,monospace">AVNRT — 180 bpm  |  R-R = 1.67 large boxes (83px)  |  Narrow QRS  |  No visible P waves</text>
     </svg>
   ),
+
 };
+
 
 const CHAPTER_DIAGRAMS = {
   1: { diagram: ECGDiagrams.NSR, label: "Normal Sinus Rhythm", note: "The baseline all rhythms are compared against. Learn this waveform cold." },
